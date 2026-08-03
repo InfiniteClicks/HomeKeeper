@@ -3,7 +3,6 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth
 
 import {
   getFirestore,
-  enableIndexedDbPersistence,
   collection,
   doc,
   addDoc,
@@ -40,9 +39,3 @@ export {
   serverTimestamp,
   writeBatch
 };
-
-enableIndexedDbPersistence(db).catch((error) => {
-  if (!["failed-precondition", "unimplemented"].includes(error.code)) {
-    console.warn("Offline persistence could not be enabled:", error);
-  }
-});
