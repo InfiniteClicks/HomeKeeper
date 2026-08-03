@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f5f7">
+<title>Toiletries Stock</title>
+<style>
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #111;
+  background: #f5f5f7;
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+header {
+  position:sticky; top:0; z-index:10; background:rgba(245,245,247,.93);
+  backdrop-filter:blur(16px); padding:14px 14px 10px; border-bottom:1px solid #ddd;
+}
+h1 { margin:0 0 10px; font-size:28px; }
+.controls { display:grid; grid-template-columns:1fr auto; gap:8px; }
+input, button, select {
+  font:inherit; border-radius:12px; border:1px solid #c7c7cc; background:white;
+}
+#search { padding:12px 14px; width:100%; }
+button { padding:10px 13px; cursor:pointer; }
+button:active { transform:scale(.97); }
+.summary { display:flex; gap:8px; margin-top:10px; font-size:14px; flex-wrap:wrap; }
+.badge { background:white; border:1px solid #ddd; padding:6px 9px; border-radius:999px; }
+main { padding:12px; max-width:760px; margin:auto; }
+.item {
+  display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
+  background:white; border-radius:16px; padding:13px 12px; margin-bottom:9px;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.item.low { background:#fff4cc; }
+.item.zero { background:#ffd8dd; }
+.name { font-weight:650; }
+.meta { font-size:12px; color:#666; margin-top:3px; }
+.qtyrow { display:flex; align-items:center; gap:8px; }
+.round {
+  width:42px; height:42px; border-radius:50%; padding:0; font-size:25px; line-height:1;
+}
+.qty { min-width:34px; text-align:center; font-size:23px; font-weight:700; }
+footer { padding:8px 12px 30px; max-width:760px; margin:auto; }
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.small { font-size:13px; color:#666; line-height:1.4; margin-top:12px; }
+dialog { border:0; border-radius:18px; padding:18px; width:min(92vw,420px); }
+dialog::backdrop { background:rgba(0,0,0,.35); }
+dialog input { width:100%; padding:12px; margin:6px 0 12px; }
+.dialog-actions { display:flex; justify-content:flex-end; gap:8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Toiletries Stock</h1>
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search items…" autocomplete="off">
+    <button id="filterBtn">Low stock</button>
+  </div>
+  <div class="summary">
+    <span class="badge" id="itemCount"></span>
+    <span class="badge" id="lowCount"></span>
+  </div>
+</header>
+
+<main id="list"></main>
+
+<footer>
+  <div class="actions">
+    <button id="addBtn">Add item</button>
+    <button id="shareBtn">Share shopping list</button>
+    <button id="exportBtn">Export backup</button>
+    <button id="resetBtn">Reset original list</button>
+  </div>
+  <p class="small">
+    Tap − when you use an item and + when you buy more. Your quantities are saved on this device.
+    Items at or below their minimum level appear in yellow; zero stock appears in red.
+  </p>
+</footer>
+
+<dialog id="editDialog">
+  <form method="dialog" id="editForm">
+    <h2 id="dialogTitle">Add item</h2>
+    <label>Item name<input id="editName" required></label>
+    <label>Quantity<input id="editQty" type="number" min="0" inputmode="numeric" required></label>
+    <label>Minimum stock<input id="editMin" type="number" min="0" inputmode="numeric" required></label>
+    <div class="dialog-actions">
+      <button value="cancel">Cancel</button>
+      <button id="saveItem" value="default">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const ORIGINAL = [{"name": "Aveno", "qty": 12, "min": 2}, {"name": "Baby Wipes", "qty": 3, "min": 2}, {"name": "Bathroom Gels", "qty": 2, "min": 2}, {"name": "Bloo Acticlean Blocks", "qty": 2, "min": 2}, {"name": "Body Puffs", "qty": 2, "min": 2}, {"name": "Conditioner", "qty": 1, "min": 2}, {"name": "Cotton Pads", "qty": 8, "min": 2}, {"name": "Cotton Wool Balls", "qty": 1, "min": 2}, {"name": "Deodorant (Jake's)", "qty": 0, "min": 2}, {"name": "Deodorant (Jess')", "qty": 2, "min": 2}, {"name": "Deodorant (Nay's)", "qty": 1, "min": 2}, {"name": "Deodorant (Stu's)", "qty": 2, "min": 2}, {"name": "Dry Shampoo", "qty": 2, "min": 2}, {"name": "Ear Buds (Tub)", "qty": 1, "min": 2}, {"name": "Face Masks (Jess')", "qty": 4, "min": 2}, {"name": "Face Masks (Nay's)", "qty": 1, "min": 2}, {"name": "Face Wipes (Jess')", "qty": 4, "min": 2}, {"name": "Face Wipes (Nay's)", "qty": 4, "min": 2}, {"name": "Footpacks", "qty": 4, "min": 2}, {"name": "Hair Fibre Cream", "qty": 1, "min": 2}, {"name": "Hair Spray", "qty": 2, "min": 2}, {"name": "Hand & Nail Cream", "qty": 1, "min": 2}, {"name": "Hand Sanitizer", "qty": 2, "min": 2}, {"name": "Hand Soap", "qty": 2, "min": 2}, {"name": "Lip Masks", "qty": 5, "min": 2}, {"name": "Nail Brushes", "qty": 3, "min": 2}, {"name": "Nail Polish Remover", "qty": 1, "min": 2}, {"name": "Nivea Face Wash", "qty": 3, "min": 2}, {"name": "Nivea Exfoliator", "qty": 1, "min": 2}, {"name": "Nivea Shaving Foam/Gel", "qty": 3, "min": 2}, {"name": "Panty Liners", "qty": 2, "min": 2}, {"name": "Pocket Tissues", "qty": 7, "min": 2}, {"name": "Post Shave Balm", "qty": 1, "min": 2}, {"name": "Razors (Nay's/Jess')", "qty": 2, "min": 2}, {"name": "Razors (Stu's)", "qty": 4, "min": 2}, {"name": "Sanex Shower Gel", "qty": 1, "min": 2}, {"name": "Sanitary Towels (Jess')", "qty": 2, "min": 2}, {"name": "Shampoo (Jess')", "qty": 2, "min": 2}, {"name": "Shampoo (Nay)", "qty": 2, "min": 2}, {"name": "Shampoo/T-Gel (Stu & Jake)", "qty": 23, "min": 2}, {"name": "Shaving Gel (Nay's)", "qty": 2, "min": 2}, {"name": "Shower Gel", "qty": 1, "min": 2}, {"name": "Spot Pads", "qty": 2, "min": 2}, {"name": "Sudocrem", "qty": 1, "min": 2}, {"name": "Tissues (Box)", "qty": 2, "min": 2}, {"name": "Toilet Wipes", "qty": 2, "min": 2}, {"name": "Tooth Floss", "qty": 1, "min": 2}, {"name": "Tooth Tepes", "qty": 2, "min": 2}, {"name": "Toothbrush Heads", "qty": 9, "min": 2}, {"name": "Toothbrushes", "qty": 3, "min": 2}, {"name": "Toothpaste (Stu)", "qty": 2, "min": 2}, {"name": "Toothpaste", "qty": 1, "min": 2}, {"name": "Under Eye Pads", "qty": 9, "min": 2}];
+const STORAGE_KEY = "toiletries-stock-v1";
+let items = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || structuredClone(ORIGINAL);
+let lowOnly = false;
+
+const list = document.getElementById("list");
+const search = document.getElementById("search");
+const itemCount = document.getElementById("itemCount");
+const lowCount = document.getElementById("lowCount");
+const dialog = document.getElementById("editDialog");
+const editName = document.getElementById("editName");
+const editQty = document.getElementById("editQty");
+const editMin = document.getElementById("editMin");
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function changeQty(index, delta) {
+  items[index].qty = Math.max(0, Number(items[index].qty) + delta);
+  save();
+  render();
+}
+
+function editItem(index) {
+  const item = items[index];
+  editName.value = item.name;
+  editQty.value = item.qty;
+  editMin.value = item.min;
+  dialog.dataset.index = index;
+  document.getElementById("dialogTitle").textContent = "Edit item";
+  dialog.showModal();
+}
+
+function render() {
+  const term = search.value.trim().toLowerCase();
+  list.innerHTML = "";
+  const visible = items
+    .map((item, index) => ({item,index}))
+    .filter(x => x.item.name.toLowerCase().includes(term))
+    .filter(x => !lowOnly || x.item.qty <= x.item.min)
+    .sort((a,b) => a.item.name.localeCompare(b.item.name));
+
+  for (const {item,index} of visible) {
+    const card = document.createElement("div");
+    card.className = "item " + (item.qty === 0 ? "zero" : item.qty <= item.min ? "low" : "");
+    card.innerHTML = `
+      <div>
+        <div class="name">${escapeHtml(item.name)}</div>
+        <div class="meta">Minimum: ${item.min} · tap name to edit</div>
+      </div>
+      <div class="qtyrow">
+        <button class="round minus" aria-label="Use one">−</button>
+        <div class="qty">${item.qty}</div>
+        <button class="round plus" aria-label="Add one">+</button>
+      </div>`;
+    card.querySelector(".minus").onclick = () => changeQty(index,-1);
+    card.querySelector(".plus").onclick = () => changeQty(index,1);
+    card.querySelector(".name").onclick = () => editItem(index);
+    list.appendChild(card);
+  }
+
+  itemCount.textContent = `${items.length} items`;
+  const low = items.filter(x => x.qty <= x.min).length;
+  lowCount.textContent = `${low} low`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+search.addEventListener("input", render);
+
+document.getElementById("filterBtn").onclick = () => {
+  lowOnly = !lowOnly;
+  document.getElementById("filterBtn").textContent = lowOnly ? "Show all" : "Low stock";
+  render();
+};
+
+document.getElementById("addBtn").onclick = () => {
+  editName.value = "";
+  editQty.value = 0;
+  editMin.value = 2;
+  dialog.dataset.index = "";
+  document.getElementById("dialogTitle").textContent = "Add item";
+  dialog.showModal();
+};
+
+document.getElementById("editForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const entry = {
+    name: editName.value.trim(),
+    qty: Math.max(0, Number(editQty.value)),
+    min: Math.max(0, Number(editMin.value))
+  };
+  const idx = dialog.dataset.index;
+  if (idx === "") items.push(entry); else items[Number(idx)] = entry;
+  save();
+  dialog.close();
+  render();
+});
+
+document.getElementById("shareBtn").onclick = async () => {
+  const low = items.filter(x => x.qty <= x.min)
+    .sort((a,b) => a.name.localeCompare(b.name))
+    .map(x => `• ${x.name} (have ${x.qty}, minimum ${x.min})`)
+    .join("\n");
+  const text = low ? `Toiletries shopping list\n\n${low}` : "No toiletries are currently low.";
+  try {
+    if (navigator.share) await navigator.share({title:"Toiletries shopping list", text});
+    else await navigator.clipboard.writeText(text);
+  } catch (e) {}
+};
+
+document.getElementById("exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(items,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "toiletries-stock-backup.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+document.getElementById("resetBtn").onclick = () => {
+  if (confirm("Reset all quantities and items to the original spreadsheet list?")) {
+    items = structuredClone(ORIGINAL);
+    save();
+    render();
+  }
+};
+
+render();
+</script>
+</body>
+</html>
