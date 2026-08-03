@@ -1,16 +1,15 @@
 import {
+  db,
   collection,
   doc,
   addDoc,
-  setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   getDocs,
   serverTimestamp,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-import { db } from "./firebase.js";
+} from "./firebase.js";
 
 const itemsRef = collection(db, "homekeeper", "shared", "items");
 const categoriesRef = collection(db, "homekeeper", "shared", "categories");
