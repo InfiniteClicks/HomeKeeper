@@ -1,9 +1,22 @@
-import { watchAuth, login, logout, resetPassword } from "./auth.js";
+import { watchAuth, login, logout, resetPassword } from "./auth.js?v=3";
+
 import {
-  subscribeItems, subscribeCategories, saveItem, changeQuantity, setManualShopping,
-  removeItem, saveCategory, removeCategory, seedStarterData, exportData
-} from "./stock.js";
-import { isShoppingItem, shoppingReason } from "./shopping.js";
+  subscribeItems,
+  subscribeCategories,
+  saveItem,
+  changeQuantity,
+  setManualShopping,
+  removeItem,
+  saveCategory,
+  removeCategory,
+  seedStarterData,
+  exportData
+} from "./stock.js?v=3";
+
+import {
+  isShoppingItem,
+  shoppingReason
+} from "./shopping.js?v=3";
 
 const $ = (id) => document.getElementById(id);
 const state = { user:null, items:[], categories:[], search:"", category:"", lowOnly:false, unsubItems:null, unsubCategories:null };

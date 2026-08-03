@@ -4,7 +4,7 @@ import {
   signOut,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { auth } from "./firebase.js";
+import { auth } from "./firebase.js?v=3";
 
 export function watchAuth(callback) {
   return onAuthStateChanged(auth, callback);
