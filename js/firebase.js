@@ -1,10 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
-  getAuth,
-  setPersistence,
-  browserLocalPersistence
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  getFirestore,
+  enableIndexedDbPersistence
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCn2aRrk0Sa5Nh4_vy8iETC-06Rhgq-OqY",
@@ -17,8 +16,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-export const auth = getAuth(app);
-
-setPersistence(auth, browserLocalPersistence);
+enableIndexedDbPersistence(db).catch((error) => {
+  if (!["failed-precondition", "unimplemented"].includes(error.code)) {
+    console.warn("Offline persistence could not be enabled:", error);
+  }
+});
