@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Replace YOUR_SHARED_ACCOUNT_UID with the UID of the shared account
+    // shown in Firebase Authentication > Users.
+    function isSharedAccount() {
+      return request.auth != null
+        && request.auth.uid == "IaO2icAlcdZA9DNWQ77ceOSA0xu2";
+    }
+
+    match /homekeeper/shared/{document=**} {
+      allow read, write: if isSharedAccount();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
